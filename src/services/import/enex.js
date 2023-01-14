@@ -253,92 +253,10 @@ function importEnex(taskContext, file, parentNote) {
 
         taskContext.increaseProgressCount();
 
-        for (const resource of resources) {
-            if (!resource.content) {
-                continue;
-            }
-
-            resource.content = utils.fromBase64(resource.content);
-
-            const hash = utils.md5(resource.content);
-
-            // skip all checked/unchecked checkboxes from OneNote
-            if (['74de5d3d1286f01bac98d32a09f601d9',
-                '4a19d3041585e11643e808d68dd3e72f',
-                '8e17580123099ac6515c3634b1f6f9a1',
-                '5069b775461e471a47ce04ace6e1c6ae',
-                '7912ee9cec35fc3dba49edb63a9ed158',
-                '3a05f4f006a6eaf2627dae5ed8b8013b'].includes(hash)) {
-                continue;
-            }
-
-            const mediaRegex = new RegExp(`<en-media [^>]*hash="${hash}"[^>]*>`, 'g');
-
-            resource.mime = resource.mime || "application/octet-stream";
-
-            const createFileNote = () => {
-                const resourceNote = noteService.createNewNote({
-                    parentNoteId: noteEntity.noteId,
-                    title: resource.title,
-                    content: resource.content,
-                    type: 'file',
-                    mime: resource.mime,
-                    isProtected: parentNote.isProtected && protectedSessionService.isProtectedSessionAvailable(),
-                }).note;
-
-                for (const attr of resource.attributes) {
-                    resourceNote.addAttribute(attr.type, attr.name, attr.value);
-                }
-
-                updateDates(resourceNote.noteId, utcDateCreated, utcDateModified);
-
-                taskContext.increaseProgressCount();
-
-                const resourceLink = `<a href="#root/${resourceNote.noteId}">${utils.escapeHtml(resource.title)}</a>`;
-
-                content = content.replace(mediaRegex, resourceLink);
-            };
-
-            if (resource.mime && resource.mime.startsWith('image/')) {
-                try {
-                    const originalName = (resource.title && resource.title !== 'resource')
-                        ? resource.title
-                        : `image.${resource.mime.substr(6)}`; // default if real name is not present
-
-                    const {url, note: imageNote} = imageService.saveImage(noteEntity.noteId, resource.content, originalName, taskContext.data.shrinkImages);
-
-                    for (const attr of resource.attributes) {
-                        if (attr.name !== 'originalFileName') { // this one is already saved in imageService
-                            imageNote.addAttribute(attr.type, attr.name, attr.value);
-                        }
-                    }
-
-                    updateDates(imageNote.noteId, utcDateCreated, utcDateModified);
-
-                    const imageLink = `<img src="${url}">`;
-
-                    content = content.replace(mediaRegex, imageLink);
-
-                    if (!content.includes(imageLink)) {
-                        // if there wasn't any match for the reference, we'll add the image anyway
-                        // otherwise image would be removed since no note would include it
-                        content += imageLink;
-                    }
-                } catch (e) {
-                    log.error(`error when saving image from ENEX file: ${e}`);
-                    createFileNote();
-                }
-            } else {
-                createFileNote();
-            }
-        }
-
-        content = htmlSanitizer.sanitize(content);
+        content = convertToMd(content);
 
         // save updated content with links to files/images
         noteEntity.setContent(content);
-
-        noteService.scanForLinks(noteEntity);
 
         updateDates(noteEntity.noteId, utcDateCreated, utcDateModified);
     }
@@ -362,6 +280,30 @@ function importEnex(taskContext, file, parentNote) {
     saxStream.on("closecdata", () => {
         //console.log("closecdata");
     });
+
+    function convertToMd(content) {
+        content = md.toMarkdown(content);
+
+        content = content.replace(/\n\n/g, "\r\n");
+
+        content = content.replace(/\\\[/g, "[");
+        content = content.replace(/\\\]/g, "]");
+
+        content = content.replace(/\\\)/g, ")");
+        content = content.replace(/\\\(/g, "(");
+
+        content = content.replace(/\\\#/g, "#");
+        content = content.replace(/\\\*/g, "*");
+        content = content.replace(/\\\!/g, "!");
+        content = content.replace(/\\\_/g, "_");
+        content = content.replace(/\\\-/g, "-");
+
+        content = content.replace(/\\\>/g, ">");
+
+        content = content.replaceAll(" ", " ");
+
+        return content;
+    }
 
     return new Promise((resolve, reject) =>
     {

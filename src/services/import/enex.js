@@ -240,8 +240,10 @@ function importEnex(taskContext, file, parentNote) {
             isProtected: parentNote.isProtected && protectedSessionService.isProtectedSessionAvailable(),
         }).note;
 
+        const ignoredAttributes = ['source', 'source_application', 'author'];
         for (const attr of attributes) {
-            noteEntity.addAttribute(attr.type, attr.name, attr.value);
+            if (ignoredAttributes.indexOf(attr.name) === -1)
+                noteEntity.addAttribute(attr.type, attr.name, attr.value);
         }
 
         utcDateCreated = utcDateCreated || noteEntity.utcDateCreated;

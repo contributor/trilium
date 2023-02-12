@@ -243,9 +243,12 @@ function importEnex(taskContext, file, parentNote) {
 
         const ignoredAttributes = ['source', 'source_application', 'author'];
         for (const attr of attributes) {
-            if (ignoredAttributes.indexOf(attr.name) === -1)
-                noteEntity.addAttribute(attr.type, attr.name, attr.value);
-        }
+            if (ignoredAttributes.indexOf(attr.name) === -1) {
+                if (attr.name == "pageUrl" || adjustAttribute(attr)) {
+                    noteEntity.addAttribute(attr.type, attr.name, attr.value);
+                }
+            }
+        }   
 
         utcDateCreated = utcDateCreated || noteEntity.utcDateCreated;
         // sometime date modified is not present in ENEX, then use date created
@@ -259,6 +262,19 @@ function importEnex(taskContext, file, parentNote) {
         noteEntity.setContent(content);
 
         updateDates(noteEntity.noteId, utcDateCreated, utcDateModified);
+    }
+
+    const tagsToIgnore = ['artist'];
+
+    function adjustAttribute(attr) { 
+        let parts = attr.name.split('_');
+        if (parts.length == 2 && (tagsToIgnore.indexOf(parts[0]) == -1)) {
+            attr.name = parts[0];
+            attr.value = parts[1];
+            return true;
+        }
+
+        return false;
     }
 
     saxStream.on("closetag", tag => {

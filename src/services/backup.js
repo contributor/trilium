@@ -33,7 +33,7 @@ function periodBackup(optionName, backupType, periodInSeconds, allowEarlierBacku
     }
 
     if (backupType === 'daily') {
-        console.log("Checking if daily-backup is needed");
+        log.info("Checking if daily-backup is needed");
     }
 
     const now = new Date();

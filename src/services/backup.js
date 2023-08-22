@@ -9,13 +9,15 @@ const syncMutexService = require('./sync_mutex');
 const cls = require('./cls');
 const sql = require('./sql');
 
+const backupSchedulerIntervalInSeconds = 4 * 60 * 60;
+
 function regularBackup() {
     cls.init(() => {
-        periodBackup('lastDailyBackupDate', 'daily', 24 * 3600);
+        periodBackup('lastDailyBackupDate', 'daily', 24 * 3600, backupSchedulerIntervalInSeconds);
 
-        periodBackup('lastWeeklyBackupDate', 'weekly', 7 * 24 * 3600);
+        periodBackup('lastWeeklyBackupDate', 'weekly', 7 * 24 * 3600, backupSchedulerIntervalInSeconds);
 
-        periodBackup('lastMonthlyBackupDate', 'monthly', 30 * 24 * 3600);
+        periodBackup('lastMonthlyBackupDate', 'monthly', 30 * 24 * 3600, backupSchedulerIntervalInSeconds);
     });
 }
 
@@ -25,15 +27,19 @@ function isBackupEnabled(backupType) {
     return optionService.getOptionBool(optionName);
 }
 
-function periodBackup(optionName, backupType, periodInSeconds) {
+function periodBackup(optionName, backupType, periodInSeconds, allowEarlierBackupInSeconds) {
     if (!isBackupEnabled(backupType)) {
         return;
+    }
+
+    if (backupType === 'daily') {
+        console.log("Checking if daily-backup is needed");
     }
 
     const now = new Date();
     const lastBackupDate = dateUtils.parseDateTime(optionService.getOption(optionName));
 
-    if (now.getTime() - lastBackupDate.getTime() > periodInSeconds * 1000) {
+    if (now.getTime() - lastBackupDate.getTime() > (periodInSeconds - allowEarlierBackupInSeconds) * 1000) {
         backupNow(backupType);
 
         optionService.setOption(optionName, dateUtils.utcNowDateTime());
@@ -59,5 +65,6 @@ if (!fs.existsSync(dataDir.BACKUP_DIR)) {
 
 module.exports = {
     backupNow,
-    regularBackup
+    regularBackup,
+    backupSchedulerIntervalInSeconds
 };

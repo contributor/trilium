@@ -166,7 +166,7 @@ dbReady.then(() => {
         return;
     }
 
-    setInterval(() => require('./backup').regularBackup(), 4 * 60 * 60 * 1000);
+    setInterval(() => require('./backup').regularBackup(), require('./backup').backupSchedulerIntervalInSeconds * 1000);
 
     // kickoff first backup soon after start up
     setTimeout(() => require('./backup').regularBackup(), 5 * 60 * 1000);

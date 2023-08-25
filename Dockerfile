@@ -4,12 +4,6 @@ FROM node:16.19.1-alpine
 # Create app directory
 WORKDIR /usr/src/app
 
-# Bundle app source
-COPY . .
-
-COPY server-package.json package.json
-
-# Install app dependencies
 RUN set -x \
     && apk add --no-cache --virtual .build-dependencies \
         autoconf \
@@ -20,8 +14,15 @@ RUN set -x \
         make \
         nasm \
         libpng-dev \
-        python3 \
-    && npm install \
+        python3
+
+# Bundle app source
+COPY . .
+
+COPY server-package.json package.json
+
+# Install app dependencies
+RUN npm install \
     && apk del .build-dependencies \
     && npm run webpack \
     && npm prune --omit=dev \

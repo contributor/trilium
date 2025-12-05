@@ -18,7 +18,7 @@ export default function WebView({ note }: TypeWidgetProps) {
 
 function WebViewContent({ src }: { src: string }) {
     if (!isElectron) {
-        return <iframe src={src} class="note-detail-web-view-content" sandbox="allow-same-origin allow-scripts allow-popups" />
+        return <iframe src={src} class="note-detail-web-view-content" sandbox="allow-forms allow-same-origin allow-scripts allow-popups" />
     } else {
         return <webview src={src} class="note-detail-web-view-content" />
     }

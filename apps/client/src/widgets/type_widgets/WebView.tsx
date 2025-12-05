@@ -17,7 +17,12 @@ export default function WebView({ note }: TypeWidgetProps) {
     );
 }
 
-function WebViewContent({ src, iframeOptions }: { src: string, iframeOptions: string | null | undefined }) {
+interface WebViewContentProps {
+    src: string;
+    iframeOptions: string | null | undefined;
+}
+
+function WebViewContent({ src, iframeOptions }: WebViewContentProps) {
     if (!isElectron) {
         return <iframe src={src} class="note-detail-web-view-content" sandbox={`allow-same-origin allow-scripts allow-popups ${iframeOptions}`} />
     } else {

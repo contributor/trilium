@@ -53,6 +53,7 @@ type Labels = {
 
     // Note-type specific
     webViewSrc: string;
+    iframeOptions: string;
     readOnly: boolean;
     mapType: string;
     mapRootNoteId: string;

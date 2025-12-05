@@ -9,16 +9,17 @@ const isElectron = utils.isElectron();
 
 export default function WebView({ note }: TypeWidgetProps) {
     const [ webViewSrc ] = useNoteLabel(note, "webViewSrc");
+    const [ iframeOptions ] = useNoteLabel(note, "iframeOptions");
 
     return (webViewSrc
-        ? <WebViewContent src={webViewSrc} />
+        ? <WebViewContent src={webViewSrc} iframeOptions={iframeOptions} />
         : <WebViewHelp />
     );
 }
 
-function WebViewContent({ src }: { src: string }) {
+function WebViewContent({ src, iframeOptions }: { src: string, iframeOptions: string | null | undefined }) {
     if (!isElectron) {
-        return <iframe src={src} class="note-detail-web-view-content" sandbox="allow-forms allow-same-origin allow-scripts allow-popups" />
+        return <iframe src={src} class="note-detail-web-view-content" sandbox={`allow-same-origin allow-scripts allow-popups ${iframeOptions}`} />
     } else {
         return <webview src={src} class="note-detail-web-view-content" />
     }

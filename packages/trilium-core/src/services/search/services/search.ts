@@ -271,6 +271,22 @@ function findResultsWithExpression(expression: Expression, searchContext: Search
     return mergeExactAndFuzzyResults(exactResults, fuzzyResults);
 }
 
+function compareSearchResults(a: SearchResult, b: SearchResult): number {
+    if (a.score > b.score) {
+        return -1;
+    } else if (a.score < b.score) {
+        return 1;
+    }
+
+    // if score does not decide then sort results by depth of the note.
+    // This is based on the assumption that more important results are closer to the note root.
+    if (a.notePathArray.length === b.notePathArray.length) {
+        return a.notePathTitle < b.notePathTitle ? -1 : 1;
+    }
+
+    return a.notePathArray.length < b.notePathArray.length ? -1 : 1;
+}
+
 function performSearch(expression: Expression, searchContext: SearchContext, enableFuzzyMatching: boolean): SearchResult[] {
     const allNoteSet = becca.getAllNoteSet();
 
@@ -303,21 +319,7 @@ function performSearch(expression: Expression, searchContext: SearchContext, ena
     searchContext.enableFuzzyMatching = originalFuzzyMatching;
 
     if (!noteSet.sorted) {
-        searchResults.sort((a, b) => {
-            if (a.score > b.score) {
-                return -1;
-            } else if (a.score < b.score) {
-                return 1;
-            }
-
-            // if score does not decide then sort results by depth of the note.
-            // This is based on the assumption that more important results are closer to the note root.
-            if (a.notePathArray.length === b.notePathArray.length) {
-                return a.notePathTitle < b.notePathTitle ? -1 : 1;
-            }
-
-            return a.notePathArray.length < b.notePathArray.length ? -1 : 1;
-        });
+        searchResults.sort(compareSearchResults);
     }
 
     return searchResults;
@@ -331,36 +333,10 @@ function mergeExactAndFuzzyResults(exactResults: SearchResult[], fuzzyResults: S
     const additionalFuzzyResults = fuzzyResults.filter(result => !exactNoteIds.has(result.noteId));
 
     // Sort exact results by score (best exact matches first)
-    exactResults.sort((a, b) => {
-        if (a.score > b.score) {
-            return -1;
-        } else if (a.score < b.score) {
-            return 1;
-        }
-
-        // if score does not decide then sort results by depth of the note.
-        if (a.notePathArray.length === b.notePathArray.length) {
-            return a.notePathTitle < b.notePathTitle ? -1 : 1;
-        }
-
-        return a.notePathArray.length < b.notePathArray.length ? -1 : 1;
-    });
+    exactResults.sort(compareSearchResults);
 
     // Sort fuzzy results by score (best fuzzy matches first)
-    additionalFuzzyResults.sort((a, b) => {
-        if (a.score > b.score) {
-            return -1;
-        } else if (a.score < b.score) {
-            return 1;
-        }
-
-        // if score does not decide then sort results by depth of the note.
-        if (a.notePathArray.length === b.notePathArray.length) {
-            return a.notePathTitle < b.notePathTitle ? -1 : 1;
-        }
-
-        return a.notePathArray.length < b.notePathArray.length ? -1 : 1;
-    });
+    additionalFuzzyResults.sort(compareSearchResults);
 
     // CRITICAL: Always put exact matches before fuzzy matches, regardless of scores
     return [...exactResults, ...additionalFuzzyResults];
